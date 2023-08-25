@@ -9,3 +9,6 @@ Introductory Videos:
 - [Riemann Hypothesis visualised](https://www.youtube.com/watch?v=NAMuls4q2f4)
 
 - [The Riemann Zeta Function Visualised](https://www.youtube.com/watch?v=GcbML8bGSu8)
+
+Reading Material:
+- [Digital Library of Mathematical Functions: Chapter 25 Zeta and Related Functions](https://dlmf.nist.gov/25#PT2)
