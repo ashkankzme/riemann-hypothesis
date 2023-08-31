@@ -21,3 +21,4 @@ Established Facts:
 - Non-trivial zeros of the Riemann Zeta function have their real part between 0 and 1, 0 <= Re(Z) < 1
 - The non-trivial zeros of the Riemann Zeta function Z1 and Z2 come in symetric pairs, with Im(Z1) = - Im(Z2)
 - [The Prime Number Theorem](https://mathworld.wolfram.com/PrimeNumberTheorem.html): The non-trivial zeros of the Riemann Zeta function can reconstruct the [prime counting function](https://mathworld.wolfram.com/PrimeCountingFunction.html)
+- [The "encoding" of the distribution of prime numbers by the nontrivial zeros of the Riemann zeta function [common approach]](https://empslocal.ex.ac.uk/people/staff/mrwatkin/zeta/encoding1.htm)
