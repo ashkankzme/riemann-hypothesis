@@ -12,3 +12,11 @@ Introductory Videos:
 
 Reading Material:
 - [Digital Library of Mathematical Functions: Chapter 25 Zeta and Related Functions](https://dlmf.nist.gov/25#PT2)
+
+
+Established Facts:
+
+- Riemann Hypothesis simplified: All the non-trivial zeros of the Riemann Zeta function (Z) have Re(Z) = 1/2
+- Non-trivial zeros of the Riemann Zeta function have their real part between 0 and 1
+- The non-trivial zeros of the Riemann Zeta function Z1 and Z2 come in symetric pairs, with Im(Z1) = - Im(Z2)
+- The non-trivial zeros of the Riemann Zeta function can reconstruct the prime counting function
