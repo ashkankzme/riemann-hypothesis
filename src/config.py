@@ -36,3 +36,19 @@ class Config:
     validation_split: float = 0.025
 
     # Number of epochs to train the model
+    training_epochs: int = 1
+
+    # Vocabulary: all the digits + the decimal point + the begin and end, and other special tokens
+    vocabulary: list[str] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', ':', 'b', 'e', ' ']
+
+    # Trajectory offset range
+    # some back of the envelope math that in order to stay under 192 tokens context windo,
+    # we need to limit the range of the trajectory offsets between 1 and 7
+    # the worse case scenario filling the most context length is offset being 7
+    # 7 * (7 digit id + 1 : token + 7 digits + 1 . token + 9 digits + 1 space token) +
+    # 1 begin token + 1 end token - 1 space token = 185
+    # all calculations are based on the 2m zeros dataset
+    trajectory_offset_range: list[int] = [1, 7]
+
+    # Context window size
+    context_window_size: int = 192
