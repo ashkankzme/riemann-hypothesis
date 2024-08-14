@@ -46,3 +46,6 @@ if __name__ == '__main__':
     # store the trajectories as a json file
     with open('../data/zz_trajectories_2m.json', 'w') as file:
         json.dump(trajectories, file)
+
+    # print max trajectory length
+    print(f"max trajectory length is: {max([len(trajectory) for trajectory in trajectories])}")
