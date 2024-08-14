@@ -51,4 +51,4 @@ class Config:
     trajectory_offset_range: list[int] = [1, 7]
 
     # Context window size
-    context_window_size: int = 128
+    context_window_size: int = 192
