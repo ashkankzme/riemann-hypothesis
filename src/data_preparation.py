@@ -2,6 +2,7 @@ from config import Config
 import random
 import json
 import time
+import numpy as np
 
 
 def load_json_file(filepath: str) -> list[list[int]]:
@@ -65,7 +66,9 @@ def generate_batch(trajectories, batch_size):
     for i in range(0, len(trajectories), batch_size):
         # split the trajectories list of dictionaries into batches of trajectories and masks
         batch = trajectories[i:i + batch_size]
-        yield [trajectory['trajectory'] for trajectory in batch], [trajectory['mask'] for trajectory in batch]
+        x = np.array([trajectory['trajectory'] for trajectory in batch])
+        mask = np.array([trajectory['mask'] for trajectory in batch])
+        yield x, x, mask
 
 
 def generate_train_validation_test_splits(zeta_zero_trajectories):

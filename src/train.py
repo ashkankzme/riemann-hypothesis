@@ -3,7 +3,8 @@ from trax.supervised import training
 from trax import layers as tl
 from trax.optimizers import Adam
 from config import Config
-from dataـpreparation import load_json_file, generate_train_validation_test_splits, generate_and_store_trajectories
+from data_preparation import load_json_file, generate_train_validation_test_splits, generate_batch, generate_and_store_trajectories
+import itertools
 
 
 def generate_decoder_only_transformer_lm(config):
@@ -17,7 +18,7 @@ def generate_decoder_only_transformer_lm(config):
         dropout=config.dropout_rate,
         dropout_shared_axes=(0, 1),  # recommended in the trax documentation to save memory
         mode='train',
-        ff_activation=tl.activation_fns.FastGelu()
+        ff_activation=tl.activation_fns.FastGelu
     )
 
 
@@ -39,8 +40,11 @@ if __name__ == '__main__':
     # prepare the training, validation, and test splits
     print("Preparing the training, validation, and test splits...")
 
-    training_trajectories, validation_trajectories, test_trajectories = (
+    training_trajectories, validation_trajectories, _ = (
         generate_train_validation_test_splits(zeta_zero_trajectories))
+
+    infinite_train_generator = itertools.cycle(generate_batch(training_trajectories, config.batch_size))
+    infinite_eval_generator = itertools.cycle(generate_batch(validation_trajectories, config.batch_size))
 
     # since we are doing autoregressive modeling, a decoder-only transformer is sufficient (similar to gpt-2)
     decoderLM = generate_decoder_only_transformer_lm(config)
@@ -49,7 +53,7 @@ if __name__ == '__main__':
 
     # Training task.
     train_task = training.TrainTask(
-        labeled_data=training_trajectories,
+        labeled_data=infinite_train_generator,
         loss_layer=tl.CrossEntropyLoss(),
         optimizer=Adam(0.01),
         n_steps_per_checkpoint=500,
@@ -57,7 +61,7 @@ if __name__ == '__main__':
 
     # Evaluaton task.
     eval_task = training.EvalTask(
-        labeled_data=validation_trajectories,
+        labeled_data=infinite_eval_generator,
         metrics=[tl.CrossEntropyLoss(), tl.Accuracy()],
         n_eval_batches=20  # For less variance in eval numbers.
     )
@@ -71,5 +75,8 @@ if __name__ == '__main__':
 
     # do one epoch, which is len(training_trajectories) / config.batch_size
     epoch_steps = (len(training_trajectories) // config.batch_size) + 1
+
+    # begin training
+    print("Training the model...")
     training_loop.run(n_steps=1)
     # training_loop.run(n_steps=epoch_steps)
