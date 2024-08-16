@@ -53,14 +53,14 @@ if __name__ == '__main__':
         labeled_data=infinite_train_generator,
         loss_layer=tl.CrossEntropyLoss(),
         optimizer=Adam(0.01),
-        n_steps_per_checkpoint=500,
+        n_steps_per_checkpoint=config.n_steps_per_checkpoint,
     )
 
     # Evaluaton task.
     eval_task = training.EvalTask(
         labeled_data=infinite_eval_generator,
         metrics=[tl.CrossEntropyLoss(), tl.Accuracy()],
-        n_eval_batches=20  # For less variance in eval numbers.
+        n_eval_batches=config.n_eval_batches  # For less variance in eval numbers.
     )
 
     # Train the model.
@@ -71,7 +71,7 @@ if __name__ == '__main__':
         output_dir=config.training_output_dir)
 
     # do one epoch, which is len(training_trajectories) / config.batch_size
-    epoch_steps = (len(training_trajectories) // config.batch_size) + 1
+    epoch_steps = config.training_epochs * ((len(training_trajectories) // config.batch_size) + 1)
 
     # begin training
     print("Training the model...")

@@ -12,7 +12,7 @@ class Config:
     d_token_embedding: int = 32
 
     # Batch size
-    batch_size: int = 32
+    batch_size: int = 128
 
     # Number of heads in multihead attention
     num_heads: int = 8
@@ -55,3 +55,9 @@ class Config:
 
     # Training checkpoint and model directory
     training_output_dir = '../train_dir/'
+
+    # Number of steps to save a checkpoint
+    n_steps_per_checkpoint: int = 20
+
+    # N evaluation batches
+    n_eval_batches: int = 20
