@@ -34,9 +34,6 @@ if __name__ == '__main__':
     print("Loading the trajectories...")
     zeta_zero_trajectories = load_json_file('../data/zz_trajectories_2m.json')
 
-    # print max trajectory length
-    print(f"max trajectory length is: {max([len(trajectory_item['trajectory']) for trajectory_item in zeta_zero_trajectories])}")
-
     # prepare the training, validation, and test splits
     print("Preparing the training, validation, and test splits...")
 
@@ -78,5 +75,4 @@ if __name__ == '__main__':
 
     # begin training
     print("Training the model...")
-    training_loop.run(n_steps=1)
-    # training_loop.run(n_steps=epoch_steps)
+    training_loop.run(n_steps=epoch_steps)

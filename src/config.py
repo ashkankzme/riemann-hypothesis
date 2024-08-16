@@ -54,4 +54,4 @@ class Config:
     context_window_size: int = 192
 
     # Training checkpoint and model directory
-    training_output_dir = './train_dir/'
+    training_output_dir = '../train_dir/'
