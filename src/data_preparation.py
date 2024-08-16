@@ -49,6 +49,10 @@ def generate_and_store_trajectories(input_path, output_path):
                 mask += [0] * (len(trajectory) - mask_length)
                 mask += [1] * mask_length
 
+        # add padding to the trajectory to make it of length 192
+        trajectory += [vocabulary.index('p')] * (config.context_window_size - len(trajectory))
+        mask += [0] * (config.context_window_size - len(mask))
+
         trajectories.append({'trajectory': trajectory, 'mask': mask})
 
         # advance the index by the offset
@@ -92,11 +96,11 @@ def generate_train_validation_test_splits(zeta_zero_trajectories):
 if __name__ == '__main__':
     config = Config()
 
-    # print("Generating and storing trajectories...")
-    # generate_and_store_trajectories('../data/zeros_2m.txt', '../data/zz_trajectories_2m.json')
-    #
-    # print("Storing the results...")
-    # time.sleep(2)  # just to be safe, we make sure the file is ready to be read by the next step
+    print("Generating and storing trajectories...")
+    generate_and_store_trajectories('../data/zeros_2m.txt', '../data/zz_trajectories_2m.json')
+
+    print("Storing the results...")
+    time.sleep(2)  # just to be safe, we make sure the file is ready to be read by the next step
 
     print("Loading the trajectories...")
     zeta_zero_trajectories = load_json_file('../data/zz_trajectories_2m.json')

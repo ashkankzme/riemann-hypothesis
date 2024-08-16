@@ -39,7 +39,7 @@ class Config:
     training_epochs: int = 1
 
     # Vocabulary: all the digits + the decimal point + the begin and end, and other special tokens
-    vocabulary: list[str] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', ':', 'b', 'e', ' ']
+    vocabulary: list[str] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', ':', 'b', 'e', ' ', 'p']
 
     # Trajectory offset range
     # some back of the envelope math that in order to stay under 192 tokens context windo,
