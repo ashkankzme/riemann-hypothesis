@@ -57,7 +57,7 @@ class Config:
     training_output_dir = '../train_dir/'
 
     # Number of steps to save a checkpoint
-    n_steps_per_checkpoint: int = 20
+    n_steps_per_checkpoint: int = 100
 
     # N evaluation batches
     n_eval_batches: int = 20

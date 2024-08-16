@@ -52,7 +52,7 @@ if __name__ == '__main__':
     train_task = training.TrainTask(
         labeled_data=infinite_train_generator,
         loss_layer=tl.CrossEntropyLoss(),
-        optimizer=Adam(0.01),
+        optimizer=Adam(),
         n_steps_per_checkpoint=config.n_steps_per_checkpoint,
     )
 
