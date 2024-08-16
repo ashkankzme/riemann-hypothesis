@@ -65,8 +65,8 @@ if __name__ == '__main__':
 
     # Train the model.
     training_loop = training.Loop(
-        decoderLM,
-        train_task,
+        model=decoderLM,
+        tasks=[train_task],
         eval_tasks=[eval_task],
         output_dir=config.training_output_dir)
 
