@@ -13,7 +13,6 @@ if __name__ == '__main__':
     config = Config()
     zeta_zeros = read_txt_file_line_by_line('../data/zeros_2m.txt')
     vocabulary = config.vocabulary
-    vocab_size = len(vocabulary)
     trajectories = []
     random.seed(config.seed)
 

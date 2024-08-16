@@ -3,16 +3,16 @@ class Config:
     layers: int = 6
 
     # Number of units in dense layer
-    mlp_dim: int = 2048
+    d_dense_layer: int = 128
 
     # Tokens length
     length: int = 18
 
-    # Number of embdedding dim
-    features: int = 512
+    # The dimension of token embeddings
+    d_token_embedding: int = 32
 
     # Batch size
-    batch: int = 16
+    batch: int = 32
 
     # Number of heads in multihead attention
     num_heads: int = 8
