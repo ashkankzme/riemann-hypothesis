@@ -12,7 +12,7 @@ def generate_decoder_only_transformer_lm(config):
         vocab_size=len(config.vocabulary),
         d_model=config.d_token_embedding,
         d_ff=config.d_dense_layer,
-        n_layers=config.layers,
+        n_layers=config.n_layers,
         n_heads=config.num_heads,
         max_len=config.context_window_size,
         dropout=config.dropout_rate,
@@ -45,6 +45,7 @@ if __name__ == '__main__':
 
     # since we are doing autoregressive modeling, a decoder-only transformer is sufficient (similar to gpt-2)
     decoderLM = generate_decoder_only_transformer_lm(config)
+    # decoderLM.init_from_file(config.training_output_dir + '/model.pkl.gz')
 
     # todo use validation set to tune hyperparameters
 

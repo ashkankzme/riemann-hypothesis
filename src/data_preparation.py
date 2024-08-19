@@ -16,7 +16,7 @@ def read_txt_file_line_by_line(filepath: str) -> list[str]:
         return [line.strip() for line in file.readlines()]
 
 
-def generate_and_store_trajectories(input_path, output_path):
+def generate_and_store_trajectories(input_path, output_path, random_unmask_probability=0.7):
     zeta_zeros = read_txt_file_line_by_line(input_path)
     vocabulary = config.vocabulary
     trajectories = []
@@ -47,7 +47,9 @@ def generate_and_store_trajectories(input_path, output_path):
                 trajectory.append(vocabulary.index('e'))
                 mask_length = len(zero) + 1 + len(j_as_a_string) + 1
                 mask += [0] * (len(trajectory) - mask_length)
-                mask += [1] * mask_length
+                mask += random.choices([0, 1], k=mask_length, weights=[random_unmask_probability, 1 - random_unmask_probability])
+                # set random_unmask_probability to 0 to mask all the tokens
+                # mask += [1] * mask_length
 
         # add padding to the trajectory to make it of length 192
         trajectory += [vocabulary.index('p')] * (config.context_window_size - len(trajectory))

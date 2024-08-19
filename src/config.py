@@ -1,39 +1,30 @@
 class Config:
     # Number of encoder-decoder layer pairs
-    layers: int = 6
+    n_layers: int = 12
 
     # Number of units in dense layer
     d_dense_layer: int = 128
-
-    # Tokens length
-    length: int = 18
 
     # The dimension of token embeddings
     d_token_embedding: int = 32
 
     # Batch size
-    batch_size: int = 128
+    batch_size: int = 64
 
     # Number of heads in multihead attention
-    num_heads: int = 8
-
-    # Number of dims per head = features/num_heads
-    head_dim: int = 64
+    num_heads: int = 16
 
     # Bias
     use_bias: bool = False
 
     # Droput rate
-    dropout_rate: float = 0.2
+    dropout_rate: float = 0.05
 
     # Dropout or not
     training: bool = False
 
     # Random seed
     seed: int = 72
-
-    # Percentage of the dataset to use for validation
-    validation_split: float = 0.025
 
     # Number of epochs to train the model
     training_epochs: int = 1
@@ -57,7 +48,7 @@ class Config:
     training_output_dir = '../train_dir/'
 
     # Number of steps to save a checkpoint
-    n_steps_per_checkpoint: int = 100
+    n_steps_per_checkpoint: int = 20
 
-    # N evaluation batches
+    # N evaluation batches # TODO clarify what this actually does
     n_eval_batches: int = 20
