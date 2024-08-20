@@ -18,7 +18,7 @@ class Config:
     use_bias: bool = False
 
     # Droput rate
-    dropout_rate: float = 0.05
+    dropout_rate: float = 0.2
 
     # Dropout or not
     training: bool = False

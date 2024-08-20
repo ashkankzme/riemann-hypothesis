@@ -60,7 +60,7 @@ if __name__ == '__main__':
     # Evaluaton task.
     eval_task = training.EvalTask(
         labeled_data=infinite_eval_generator,
-        metrics=[tl.CrossEntropyLossWithLogSoftmax(), tl.CrossEntropyLoss(), tl.CategoryAccuracy(), tl.Accuracy()],
+        metrics=[tl.CrossEntropyLossWithLogSoftmax(), tl.CategoryAccuracy()],
         n_eval_batches=config.n_eval_batches  # For less variance in eval numbers.
     )
 
