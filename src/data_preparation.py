@@ -99,7 +99,8 @@ if __name__ == '__main__':
     config = Config()
 
     print("Generating and storing trajectories...")
-    generate_and_store_trajectories('../data/zeros_2m.txt', '../data/zz_trajectories_2m.json')
+    generate_and_store_trajectories('../data/zeros_2m.txt', '../data/zz_trajectories_2m.json',
+                                    random_unmask_probability=0.85)
 
     print("Storing the results...")
     time.sleep(2)  # just to be safe, we make sure the file is ready to be read by the next step

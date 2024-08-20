@@ -52,7 +52,7 @@ if __name__ == '__main__':
     # Training task.
     train_task = training.TrainTask(
         labeled_data=infinite_train_generator,
-        loss_layer=tl.CrossEntropyLoss(),
+        loss_layer=tl.CrossEntropyLossWithLogSoftmax(),
         optimizer=Adam(),
         n_steps_per_checkpoint=config.n_steps_per_checkpoint,
     )
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     # Evaluaton task.
     eval_task = training.EvalTask(
         labeled_data=infinite_eval_generator,
-        metrics=[tl.CrossEntropyLoss(), tl.Accuracy()],
+        metrics=[tl.CrossEntropyLossWithLogSoftmax(), tl.CrossEntropyLoss(), tl.CategoryAccuracy(), tl.Accuracy()],
         n_eval_batches=config.n_eval_batches  # For less variance in eval numbers.
     )
 
