@@ -2,7 +2,7 @@ from config import Config
 import random
 import json
 import time
-from trax.fastmath import numpy as np
+import numpy as np
 
 
 def load_json_file(filepath: str) -> list[list[int]]:

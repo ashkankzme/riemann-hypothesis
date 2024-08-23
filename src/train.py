@@ -7,7 +7,7 @@ from data_preparation import load_json_file, generate_train_validation_test_spli
 import itertools
 
 
-def generate_decoder_only_transformer_lm(config):
+def generate_decoder_only_transformer_lm(config, mode='train'):
     return TransformerLM(
         vocab_size=len(config.vocabulary),
         d_model=config.d_token_embedding,
@@ -17,7 +17,7 @@ def generate_decoder_only_transformer_lm(config):
         max_len=config.context_window_size,
         dropout=config.dropout_rate,
         dropout_shared_axes=(0, 1),  # recommended in the trax documentation to save memory
-        mode='train',
+        mode=mode,
         ff_activation=tl.activation_fns.FastGelu
     )
 
