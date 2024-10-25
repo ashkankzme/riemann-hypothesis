@@ -30,6 +30,7 @@ NHEAD = 8  # Number of heads in multi-head attention
 NHID = 256  # Dimension of the feedforward network
 NLAYERS = 3  # Number of Transformer layers
 DROPOUT = 0.1  # Dropout rate
+STEPS_PER_CHECKPOINT = 1000  # Save checkpoint every N steps
 
 # Ensure checkpoint directory exists
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
@@ -224,11 +225,12 @@ def load_checkpoint(model, optimizer, filename):
 def train(model, train_loader, optimizer, epoch):
     model.train()
     total_loss = 0
+    global_step = (epoch - 1) * len(train_loader)
+
     for batch_idx, (src, src_mask, tgt, tgt_mask) in enumerate(train_loader):
         src, src_mask = src.to(device), src_mask.to(device)
         tgt, tgt_mask = tgt.to(device), tgt_mask.to(device)
 
-        # Prepare the input and target sequences for the decoder
         tgt_input = tgt[:, :-1]
         tgt_output = tgt[:, 1:]
 
@@ -238,7 +240,6 @@ def train(model, train_loader, optimizer, epoch):
         optimizer.zero_grad()
         output = model(src, tgt_input, src_key_padding_mask=~src_mask, tgt_key_padding_mask=~tgt_input_mask)
 
-        # Flatten the output and target tensors
         output = output.reshape(-1, vocab_size)
         tgt_output = tgt_output.reshape(-1)
 
@@ -247,10 +248,23 @@ def train(model, train_loader, optimizer, epoch):
         optimizer.step()
         total_loss += loss.item()
 
+        global_step += 1
+
         if batch_idx % LOG_INTERVAL == 0:
             avg_loss = total_loss / (batch_idx + 1)
             print(f"Train Epoch: {epoch} [{batch_idx * len(src)}/{len(train_loader.dataset)}]"
                   f"\tLoss: {avg_loss:.6f}")
+
+        # Save checkpoint every STEPS_PER_CHECKPOINT steps
+        if global_step % STEPS_PER_CHECKPOINT == 0:
+            checkpoint_path = os.path.join(CHECKPOINT_DIR, f'model_checkpoint_step_{global_step}.pth.tar')
+            save_checkpoint({
+                'epoch': epoch,
+                'step': global_step,
+                'state_dict': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+            }, filename=checkpoint_path)
+
     avg_loss = total_loss / len(train_loader)
     print(f"====> Epoch: {epoch} Average loss: {avg_loss:.6f}")
 
