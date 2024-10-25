@@ -3,11 +3,9 @@ import torch.nn as nn
 import torch.optim as optim
 import os
 import random
-import math
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
-from pathlib import Path
 
 # Set random seeds for reproducibility
 torch.manual_seed(42)
@@ -25,7 +23,8 @@ SEED = 42  # Random seed
 BATCH_SIZE = 64  # Batch size
 NUM_EPOCHS = 10  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate
-MAX_SEQ_LEN = 100  # Maximum sequence length
+MAX_SEQ_LEN = 100  # Maximum input sequence length (number of zeros)
+MAX_ZERO_LEN = 50   # Maximum length of a zero in characters
 EMBED_DIM = 128  # Embedding dimension
 NHEAD = 8  # Number of heads in multi-head attention
 NHID = 256  # Dimension of the feedforward network
@@ -35,12 +34,12 @@ DROPOUT = 0.1  # Dropout rate
 # Ensure checkpoint directory exists
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
-# Read the zeros data
+# Read the zeros data and convert to strings
 def read_zeros(data_path):
     zeros = []
     with open(data_path, 'r') as f:
         for line in f:
-            zero = float(line.strip())
+            zero = line.strip()
             zeros.append(zero)
     return zeros
 
@@ -61,11 +60,26 @@ def split_data(zeros, train_ratio=0.8, dev_ratio=0.05):
 train_zeros, dev_zeros, test_zeros = split_data(zeros)
 print(f"Data split into train ({len(train_zeros)}), dev ({len(dev_zeros)}), test ({len(test_zeros)})")
 
+# Build character vocabulary
+def build_vocab(zeros):
+    chars = set(''.join(zeros))
+    char2idx = {ch: idx + 3 for idx, ch in enumerate(sorted(chars))}
+    char2idx['<pad>'] = 0  # Padding token
+    char2idx['<sos>'] = 1  # Start of sequence token
+    char2idx['<eos>'] = 2  # End of sequence token
+    return char2idx
+
+char2idx = build_vocab(zeros)
+idx2char = {idx: ch for ch, idx in char2idx.items()}
+vocab_size = len(char2idx)
+print(f"Vocabulary size: {vocab_size}")
+
 # Dataset class
 class ZetaZerosDataset(Dataset):
-    def __init__(self, zeros, max_seq_len=MAX_SEQ_LEN):
+    def __init__(self, zeros, max_seq_len=MAX_SEQ_LEN, max_zero_len=MAX_ZERO_LEN):
         self.zeros = zeros
         self.max_seq_len = max_seq_len
+        self.max_zero_len = max_zero_len
 
     def __len__(self):
         return len(self.zeros) - 1  # Cannot predict after the last zero
@@ -74,21 +88,35 @@ class ZetaZerosDataset(Dataset):
         # Random sequence length between 10 and max_seq_len
         seq_len = random.randint(10, self.max_seq_len)
         start_idx = max(0, idx - seq_len + 1)
-        sequence = self.zeros[start_idx:idx+1]  # Include idx
-        target = self.zeros[idx+1]  # The next zero
-        sequence = torch.tensor(sequence, dtype=torch.float)
-        target = torch.tensor(target, dtype=torch.float)
-        return sequence, target
+        zero_sequence = self.zeros[start_idx:idx+1]  # Include idx
+        target_zero = self.zeros[idx+1]  # The next zero
+
+        # Convert zeros to sequences of character indices
+        # Input sequence
+        zero_sequence_indices = [char2idx['<sos>']]
+        for zero in zero_sequence:
+            zero_indices = [char2idx[ch] for ch in zero]
+            zero_sequence_indices.extend(zero_indices + [char2idx['<eos>']])
+
+        zero_sequence_indices = torch.tensor(zero_sequence_indices, dtype=torch.long)
+        # Target sequence (including <sos> and <eos>)
+        target_zero_indices = [char2idx['<sos>']] + [char2idx[ch] for ch in target_zero] + [char2idx['<eos>']]
+        target_zero_indices = torch.tensor(target_zero_indices, dtype=torch.long)
+
+        return zero_sequence_indices, target_zero_indices
 
 # Collate function for variable length sequences
 def collate_fn(batch):
-    sequences, targets = zip(*batch)
-    lengths = torch.tensor([len(seq) for seq in sequences], dtype=torch.long)
-    padded_sequences = pad_sequence(sequences, batch_first=True, padding_value=0.0)
-    targets = torch.stack(targets)
-    # Create attention masks
-    masks = torch.arange(padded_sequences.size(1))[None, :] < lengths[:, None]
-    return padded_sequences, masks, targets
+    zero_sequences, target_zeros = zip(*batch)
+
+    # Pad sequences
+    padded_sequences = pad_sequence(zero_sequences, batch_first=True, padding_value=char2idx['<pad>'])
+    sequence_masks = padded_sequences != char2idx['<pad>']
+
+    padded_targets = pad_sequence(target_zeros, batch_first=True, padding_value=char2idx['<pad>'])
+    target_masks = padded_targets != char2idx['<pad>']
+
+    return padded_sequences, sequence_masks, padded_targets, target_masks
 
 # Create datasets and data loaders
 train_dataset = ZetaZerosDataset(train_zeros)
@@ -99,64 +127,78 @@ train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, co
 dev_loader = DataLoader(dev_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=collate_fn)
 test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=collate_fn)
 
-# Transformer Model for regression
-class TransformerRegressor(nn.Module):
-    def __init__(self, embed_dim, nhead, nhid, nlayers, dropout=0.1):
-        super(TransformerRegressor, self).__init__()
-        self.model_type = 'Transformer'
+# Transformer model for sequence-to-sequence prediction
+class TransformerSeq2Seq(nn.Module):
+    def __init__(self, vocab_size, embed_dim, nhead, nhid, nlayers, dropout=0.1):
+        super(TransformerSeq2Seq, self).__init__()
 
+        self.embedding = nn.Embedding(vocab_size, embed_dim, padding_idx=char2idx['<pad>'])
         self.pos_encoder = PositionalEncoding(embed_dim, dropout)
-        encoder_layers = nn.TransformerEncoderLayer(embed_dim, nhead, nhid, dropout)
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layers, nlayers)
+        self.pos_decoder = PositionalEncoding(embed_dim, dropout)
 
-        self.embedding = nn.Linear(1, embed_dim)
-        self.decoder = nn.Linear(embed_dim, 1)
+        encoder_layer = nn.TransformerEncoderLayer(d_model=embed_dim, nhead=nhead, dim_feedforward=nhid, dropout=dropout)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=nlayers)
 
-        self.init_weights()
+        decoder_layer = nn.TransformerDecoderLayer(d_model=embed_dim, nhead=nhead, dim_feedforward=nhid, dropout=dropout)
+        self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=nlayers)
 
-    def init_weights(self):
-        initrange = 0.1
-        self.embedding.weight.data.uniform_(-initrange, initrange)
-        self.decoder.bias.data.zero_()
-        self.decoder.weight.data.uniform_(-initrange, initrange)
+        self.fc_out = nn.Linear(embed_dim, vocab_size)
 
-    def forward(self, src, src_mask):
-        src = src.unsqueeze(-1)  # Add feature dimension
-        src = self.embedding(src) * math.sqrt(EMBED_DIM)
-        src = self.pos_encoder(src)
-        src = src.permute(1, 0, 2)  # Shape for transformer: [seq_len, batch_size, embed_dim]
-        output = self.transformer_encoder(src, src_key_padding_mask=~src_mask)
-        output = output.permute(1, 0, 2)
-        # Use the output corresponding to the last element in the sequence
-        idx = (src_mask.sum(1) - 1).unsqueeze(1).unsqueeze(2).expand(-1, -1, EMBED_DIM)
-        last_output = output.gather(1, idx).squeeze(1)
-        output = self.decoder(last_output)
-        return output.squeeze()
+        self.embed_scale = np.sqrt(embed_dim)
+
+    def forward(self, src, tgt, src_key_padding_mask, tgt_key_padding_mask):
+        src_emb = self.embedding(src) * self.embed_scale
+        src_emb = self.pos_encoder(src_emb)
+
+        tgt_emb = self.embedding(tgt) * self.embed_scale
+        tgt_emb = self.pos_decoder(tgt_emb)
+
+        src = src_emb.transpose(0, 1)  # [seq_len, batch_size, embed_dim]
+        tgt = tgt_emb.transpose(0, 1)  # [seq_len, batch_size, embed_dim]
+
+        memory = self.transformer_encoder(src, src_key_padding_mask=src_key_padding_mask)
+        output = self.transformer_decoder(
+            tgt,
+            memory,
+            tgt_mask=generate_square_subsequent_mask(tgt.size(0)).to(tgt.device),
+            tgt_key_padding_mask=tgt_key_padding_mask,
+            memory_key_padding_mask=src_key_padding_mask
+        )
+        output = self.fc_out(output)  # [tgt_len, batch_size, vocab_size]
+        output = output.transpose(0, 1)  # [batch_size, tgt_len, vocab_size]
+        return output
+
+def generate_square_subsequent_mask(sz):
+    """Generate a square mask for the sequence. The masked positions are filled with float('-inf')."""
+    mask = torch.triu(torch.full((sz, sz), float('-inf')), diagonal=1)
+    return mask
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, embed_dim, dropout=0.1, max_len=MAX_SEQ_LEN):
+    def __init__(self, embed_dim, dropout=0.1, max_len=5000):
         super(PositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(p=dropout)
 
         pe = torch.zeros(max_len, embed_dim)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, embed_dim, 2).float() * (-math.log(10000.0) / embed_dim))
+        position = torch.arange(0, max_len, dtype=torch.float32).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, embed_dim, 2).float() * (-np.log(10000.0) / embed_dim))
         pe[:, 0::2] = torch.sin(position * div_term)
+
         if embed_dim % 2 == 1:
-            # If embed_dim is odd, we need to handle the last term separately
             pe[:, -1] = torch.cos(position.squeeze() * div_term[-1])
         else:
             pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0)  # Shape: [1, max_len, embed_dim]
+
+        pe = pe.unsqueeze(0)
         self.register_buffer('pe', pe)
 
     def forward(self, x):
-        x = x + self.pe[:, :x.size(1), :]
+        # x: [batch_size, seq_len, embed_dim]
+        x = x + self.pe[:, :x.size(1), :].to(x.device)
         return self.dropout(x)
 
 # Initialize the model, loss function, and optimizer
-model = TransformerRegressor(EMBED_DIM, NHEAD, NHID, NLAYERS, DROPOUT).to(device)
-criterion = nn.MSELoss()
+model = TransformerSeq2Seq(vocab_size, EMBED_DIM, NHEAD, NHID, NLAYERS, DROPOUT).to(device)
+criterion = nn.CrossEntropyLoss(ignore_index=char2idx['<pad>'])
 optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 # Function to save checkpoint
@@ -182,18 +224,32 @@ def load_checkpoint(model, optimizer, filename):
 def train(model, train_loader, optimizer, epoch):
     model.train()
     total_loss = 0
-    for batch_idx, (data, mask, target) in enumerate(train_loader):
-        data, mask, target = data.to(device), mask.to(device), target.to(device)
+    for batch_idx, (src, src_mask, tgt, tgt_mask) in enumerate(train_loader):
+        src, src_mask = src.to(device), src_mask.to(device)
+        tgt, tgt_mask = tgt.to(device), tgt_mask.to(device)
+
+        # Prepare the input and target sequences for the decoder
+        tgt_input = tgt[:, :-1]
+        tgt_output = tgt[:, 1:]
+
+        tgt_input_mask = tgt_mask[:, :-1]
+        tgt_output_mask = tgt_mask[:, 1:]
+
         optimizer.zero_grad()
-        output = model(data, mask)
-        loss = criterion(output, target)
+        output = model(src, tgt_input, src_key_padding_mask=~src_mask, tgt_key_padding_mask=~tgt_input_mask)
+
+        # Flatten the output and target tensors
+        output = output.reshape(-1, vocab_size)
+        tgt_output = tgt_output.reshape(-1)
+
+        loss = criterion(output, tgt_output)
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
 
         if batch_idx % LOG_INTERVAL == 0:
             avg_loss = total_loss / (batch_idx + 1)
-            print(f"Train Epoch: {epoch} [{batch_idx * len(data)}/{len(train_loader.dataset)}]"
+            print(f"Train Epoch: {epoch} [{batch_idx * len(src)}/{len(train_loader.dataset)}]"
                   f"\tLoss: {avg_loss:.6f}")
     avg_loss = total_loss / len(train_loader)
     print(f"====> Epoch: {epoch} Average loss: {avg_loss:.6f}")
@@ -203,10 +259,24 @@ def evaluate(model, data_loader, set_name='Dev'):
     model.eval()
     total_loss = 0
     with torch.no_grad():
-        for data, mask, target in data_loader:
-            data, mask, target = data.to(device), mask.to(device), target.to(device)
-            output = model(data, mask)
-            loss = criterion(output, target)
+        for src, src_mask, tgt, tgt_mask in data_loader:
+            src, src_mask = src.to(device), src_mask.to(device)
+            tgt, tgt_mask = tgt.to(device), tgt_mask.to(device)
+
+            # Prepare the input and target sequences for the decoder
+            tgt_input = tgt[:, :-1]
+            tgt_output = tgt[:, 1:]
+
+            tgt_input_mask = tgt_mask[:, :-1]
+            tgt_output_mask = tgt_mask[:, 1:]
+
+            output = model(src, tgt_input, src_key_padding_mask=~src_mask, tgt_key_padding_mask=~tgt_input_mask)
+
+            # Flatten the output and target tensors
+            output = output.reshape(-1, vocab_size)
+            tgt_output = tgt_output.reshape(-1)
+
+            loss = criterion(output, tgt_output)
             total_loss += loss.item()
     avg_loss = total_loss / len(data_loader)
     print(f"====> {set_name} set loss: {avg_loss:.6f}")
