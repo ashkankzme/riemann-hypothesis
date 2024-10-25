@@ -16,12 +16,12 @@ random.seed(42)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Parameters
-DATA_PATH = './data/zeros_2m.txt'  # Path to the zeros data file
-CHECKPOINT_DIR = './checkpoints'  # Directory to save checkpoints
+DATA_PATH = './drive/MyDrive/Colab Notebooks/data/zeros_2m.txt'  # Path to the zeros data file
+CHECKPOINT_DIR = './drive/MyDrive/Colab Notebooks/checkpoints'  # Directory to save checkpoints
 LOG_INTERVAL = 100  # Log every N batches
 SEED = 42  # Random seed
-BATCH_SIZE = 64  # Batch size
-NUM_EPOCHS = 10  # Number of training epochs
+BATCH_SIZE = 512  # Batch size
+NUM_EPOCHS = 3  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate
 MAX_SEQ_LEN = 100  # Maximum input sequence length (number of zeros)
 MAX_ZERO_LEN = 50   # Maximum length of a zero in characters
@@ -30,7 +30,7 @@ NHEAD = 8  # Number of heads in multi-head attention
 NHID = 256  # Dimension of the feedforward network
 NLAYERS = 3  # Number of Transformer layers
 DROPOUT = 0.1  # Dropout rate
-STEPS_PER_CHECKPOINT = 1000  # Save checkpoint every N steps
+STEPS_PER_CHECKPOINT = 50  # Save checkpoint every N steps
 
 # Ensure checkpoint directory exists
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
@@ -208,18 +208,22 @@ def save_checkpoint(state, filename='checkpoint.pth.tar'):
     print(f"Checkpoint saved to {filename}")
 
 # Function to load checkpoint
-def load_checkpoint(model, optimizer, filename):
-    if os.path.isfile(filename):
-        print(f"Loading checkpoint '{filename}'")
-        checkpoint = torch.load(filename)
-        start_epoch = checkpoint['epoch']
-        model.load_state_dict(checkpoint['state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer'])
-        print(f"Loaded checkpoint '{filename}' (epoch {start_epoch})")
-        return start_epoch
-    else:
-        print(f"No checkpoint found at '{filename}', starting from scratch")
-        return 0
+def load_checkpoint(model, optimizer):
+    # Find the latest checkpoint
+    checkpoints = [f for f in os.listdir(CHECKPOINT_DIR) if f.startswith('model_checkpoint_step_')]
+    if not checkpoints:
+        print("No checkpoints found, starting from scratch")
+        return 0, 0
+
+    latest_checkpoint = max(checkpoints, key=lambda x: int(x.split('_')[-1].split('.')[0]))
+    checkpoint_path = os.path.join(CHECKPOINT_DIR, latest_checkpoint)
+
+    print(f"Loading checkpoint '{checkpoint_path}'")
+    checkpoint = torch.load(checkpoint_path)
+    model.load_state_dict(checkpoint['state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer'])
+    print(f"Loaded checkpoint (epoch {checkpoint['epoch']}, step {checkpoint['step']})")
+    return checkpoint['epoch'], checkpoint['step']
 
 # Training loop
 def train(model, train_loader, optimizer, epoch):
@@ -297,7 +301,7 @@ def evaluate(model, data_loader, set_name='Dev'):
     return avg_loss
 
 # Main training and evaluation
-start_epoch = load_checkpoint(model, optimizer, os.path.join(CHECKPOINT_DIR, 'model_checkpoint.pth.tar'))
+start_epoch, global_step = load_checkpoint(model, optimizer)
 best_dev_loss = float('inf')
 
 for epoch in range(start_epoch + 1, NUM_EPOCHS + 1):
