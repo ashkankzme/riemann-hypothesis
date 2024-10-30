@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import random
 import os
+import torch.optim as optim
 
 # Set random seeds for reproducibility
 SEED = 42
@@ -19,6 +20,7 @@ from zeta_zeros_model import (
     read_zeros,
     split_data,
     build_vocab,
+    load_checkpoint,
     ZetaZerosDataset,
     TransformerSeq2Seq,
     generate_square_subsequent_mask,
@@ -32,6 +34,7 @@ from zeta_zeros_model import (
     NHID,
     NLAYERS,
     DROPOUT,
+    LEARNING_RATE
 )
 
 # Read the zeros data and convert to strings
@@ -55,11 +58,12 @@ print(f"Total test examples: {len(test_dataset)}")
 
 # Initialize the model with the same parameters
 model = TransformerSeq2Seq(vocab_size, EMBED_DIM, NHEAD, NHID, NLAYERS, DROPOUT, char2idx=char2idx)
-
+optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 # Load the trained model
-best_model_path = os.path.join(CHECKPOINT_DIR, 'best_model.pth.tar')
+best_model_path = os.path.join(CHECKPOINT_DIR, 'model_checkpoint_step_4550.pth.tar')
 print(f"Loading model from {best_model_path}")
-model.load_state_dict(torch.load(best_model_path, map_location=device))
+# model.load_state_dict(torch.load(best_model_path, map_location=device))
+load_checkpoint(model, optimizer, CHECKPOINT_DIR, device)
 model = model.to(device)
 model.eval()
 
