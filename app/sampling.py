@@ -14,14 +14,15 @@ random.seed(SEED)
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# Import necessary components from train_and_evaluation.py
-from training_and_evaluation import (
+# Import necessary components from zeta_zero_model.py
+from zeta_zeros_model import (
     read_zeros,
     split_data,
     build_vocab,
     ZetaZerosDataset,
     TransformerSeq2Seq,
     generate_square_subsequent_mask,
+    device as model_device,
     DATA_PATH,
     CHECKPOINT_DIR,
     MAX_SEQ_LEN,
@@ -39,8 +40,8 @@ zeros = read_zeros(DATA_PATH)
 print(f"Total zeros loaded: {len(zeros)}")
 
 # Split the data into train/dev/test sets
-train_zeros, dev_zeros, test_zeros = split_data(zeros)
-print(f"Data split into train ({len(train_zeros)}), dev ({len(dev_zeros)}), test ({len(test_zeros)})")
+_, _, test_zeros = split_data(zeros)
+print(f"Test set size: {len(test_zeros)}")
 
 # Build character vocabulary
 char2idx = build_vocab(zeros)
@@ -49,16 +50,16 @@ vocab_size = len(char2idx)
 print(f"Vocabulary size: {vocab_size}")
 
 # Prepare test dataset
-test_dataset = ZetaZerosDataset(test_zeros, max_seq_len=MAX_SEQ_LEN, max_zero_len=MAX_ZERO_LEN)
+test_dataset = ZetaZerosDataset(test_zeros, char2idx, max_seq_len=MAX_SEQ_LEN, max_zero_len=MAX_ZERO_LEN)
 print(f"Total test examples: {len(test_dataset)}")
 
 # Initialize the model with the same parameters
-model = TransformerSeq2Seq(vocab_size, EMBED_DIM, NHEAD, NHID, NLAYERS, DROPOUT)
+model = TransformerSeq2Seq(vocab_size, EMBED_DIM, NHEAD, NHID, NLAYERS, DROPOUT, char2idx=char2idx)
 
 # Load the trained model
 best_model_path = os.path.join(CHECKPOINT_DIR, 'best_model.pth.tar')
 print(f"Loading model from {best_model_path}")
-model.load_state_dict(torch.load(best_model_path, map_location=torch.device('cpu')))
+model.load_state_dict(torch.load(best_model_path, map_location=device))
 model = model.to(device)
 model.eval()
 
