@@ -16,8 +16,8 @@ random.seed(42)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Parameters
-DATA_PATH = './drive/MyDrive/Colab Notebooks/data/zeros_2m.txt'  # Path to the zeros data file
-CHECKPOINT_DIR = './drive/MyDrive/Colab Notebooks/checkpoints'  # Directory to save checkpoints
+DATA_PATH = '../data/zeros_2m.txt'  # Path to the zeros data file
+CHECKPOINT_DIR = '../models'  # Directory to save checkpoints
 LOG_INTERVAL = 100  # Log every N batches
 SEED = 42  # Random seed
 BATCH_SIZE = 512  # Batch size

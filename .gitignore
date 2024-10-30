@@ -161,3 +161,4 @@ cython_debug/
 
 # excluding training directory
 train_dir/
+models/
